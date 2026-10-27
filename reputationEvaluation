@@ -1,0 +1,80 @@
+from dataclasses import dataclass
+from typing import Optional
+import random
+
+
+@dataclass
+class FirewallRule: #other fields added for later implemntation
+    rule_id: int = 0
+    source_ip: str = "default"
+    #destination_ip: 0
+    #source_port: Optional[int]
+    #destination_port: Optional[int]
+    #protocol: str          # TCP, UDP, ICMP
+    action: str ="default"           # ALLOW or DENY
+    #priority: int
+    trust_score: float = 0.0
+
+@dataclass
+class Packet: #other fields added for later implemntation
+    source_ip: str = "default"
+    #destination_ip: str
+    #source_port: Optional[int]
+    #destination_port: Optional[int]
+    #protocol: str          # TCP, UDP, ICMP
+
+rules: list[FirewallRule] = []
+packets: list[Packet] = []
+        
+def createRules(): ##creates random list mimicking a firewall log (10 rules)
+    known_source = ""
+    action = ""
+    
+    for i in range(10):
+        num = random.randint(1, 10)
+        rule =FirewallRule(rule_id=i)
+        if num <= 5: rule.action = "ALLOW"
+        else: rule.action = "DENY"
+        num2 = random.randint(1,10)
+        rule.source_ip = "MALICIOUS" if num2 <= 5 else "TRUSTED"
+        
+        rules.append(rule)
+
+def createTraffic(): ##creates random list mimicking a incoming traffic log (10 packets)
+    known_source = ""
+    action = ""
+    
+    for i in range(10):
+        num = random.randint(1, 10)
+        packet = Packet()
+        #if num <= 5: packet.protocol = "TCP"
+        #else: packet.protocol = "UDP"
+        num2 = random.randint(1,10)
+        packet.source_ip = "MALICIOUS" if num2 <= 5 else "TRUSTED"    
+        packets.append(packet)
+        
+def scoreUpdate():
+    for i in range(len(rules)):
+        if rules[i].action == "ALLOW" and packets[i].source_ip == "TRUSTED":
+            rules[i].trust_score += 1
+            update = 1
+        elif rules[i].action == "DENY" and packets[i].source_ip == "MALICIOUS":
+            rules[i].trust_score += 1
+            update = 1
+        else: ##menaing that the rule is allowing a malicious source or denying a trusted source, which is bad for the firewall rules reputation
+            rules[i].trust_score -= 1
+            update = -1
+        print(f"Rule {rules[i].rule_id}: "
+        f"Action={rules[i].action}, "
+        f"Packet={packets[i].source_ip}, "
+        f"Update={update}, "
+        f"Trust Score={rules[i].trust_score}"
+        )
+        
+if __name__ == "__main__":
+    print("Program started")
+    createRules()
+    createTraffic()
+    print(f"Rules: {len(rules)}")
+    print(f"Packets: {len(packets)}")
+    scoreUpdate()
