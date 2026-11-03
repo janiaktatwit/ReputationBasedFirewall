@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional
+from scapy.layers.inet import IP
+from scapy.layers.inet import TCP, UDP
+from scapy.utils import rdpcap
+import sys
 import random
 
 
@@ -7,25 +11,45 @@ import random
 class FirewallRule: #other fields added for later implemntation
     rule_id: int = 0
     source_ip: str = "default"
-    #destination_ip: 0
-    #source_port: Optional[int]
-    #destination_port: Optional[int]
-    #protocol: str          # TCP, UDP, ICMP
+    destination_ip: str = "default"
+    source_port: Optional[int] = None
+    destination_port: Optional[int] = None
+    protocol: int = 0          # TCP = 6, UDP = 17, ICMP = 1
     action: str ="default"           # ALLOW or DENY
-    #priority: int
+    priority: int = 0
     trust_score: float = 0.0
 
 @dataclass
 class Packet: #other fields added for later implemntation
     source_ip: str = "default"
-    #destination_ip: str
-    #source_port: Optional[int]
-    #destination_port: Optional[int]
-    #protocol: str          # TCP, UDP, ICMP
+    destination_ip: str = "default"
+    #source_port: Optional[int] = None
+    #destination_port: Optional[int] = None
+    protocol: int = 0          # TCP, UDP, ICMP
 
 rules: list[FirewallRule] = []
 packets: list[Packet] = []
-        
+
+KNOWN_MALICIOUS_IPS = []
+KNOWN_TRUSTED_IPS = ["23.197.45.160"]  # 23.197.45.160 == amazon from .pcap (technically akamaitechnologies, but its a proxy for amazon.com)
+
+
+def loadTraffic():
+    args = sys.argv
+    if len(args) < 2:
+        print("Provide a pcap file as an argument. Usage: py reputationEvaluation <file.pcap>")
+        sys.exit(1)
+    packets_read = rdpcap(sys.argv[1])
+    for packet in packets_read:
+        if packet.haslayer(IP):
+            source_ip = packet[IP].src
+            destination_ip = packet[IP].dst
+            protocol = packet[IP].proto
+            new_packet = Packet(source_ip=source_ip, destination_ip=destination_ip, protocol=protocol)
+            packets.append(new_packet) 
+
+
+
 def createRules(): ##creates random list mimicking a firewall log (10 rules)
     known_source = ""
     action = ""
@@ -39,6 +63,9 @@ def createRules(): ##creates random list mimicking a firewall log (10 rules)
         rule.source_ip = "MALICIOUS" if num2 <= 5 else "TRUSTED"
         
         rules.append(rule)
+
+
+
 
 def createTraffic(): ##creates random list mimicking a incoming traffic log (10 packets)
     known_source = ""
